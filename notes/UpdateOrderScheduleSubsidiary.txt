@@ -1,0 +1,21 @@
+USE supplier
+GO
+DECLARE @UpdatedOSAE TABLE (DocumentId int)
+	BEGIN TRANSACTION
+		---Update OS SubsidiaryId to the same as Parent Agreement's Subsidiaryid
+		UPDATE  osae SET osae.SubsidiaryId=agae.SubsidiaryId
+		OUTPUT INSERTED.DocumentId INTO @UpdatedOSAE
+		FROM DataSupplier.AgreementExtension osae
+		INNER JOIN DataSupplier.Document os ON os.DocumentId=osae.DocumentId
+		INNER JOIN DataSupplier.Document ag ON os.ParentDocumentId=ag.DocumentId
+		INNER JOIN DataSupplier.AgreementExtension agae ON ag.DocumentId=agae.DocumentId
+		WHERE os.Active=1 AND os.DocumentTypeId=2 
+			AND ag.Active=1 AND ag.DocumentTypeId=1
+	
+		---Update OS Updateddate for the Document Ids updated in the previous Update Statement
+		UPDATE  os SET os.UpdateDate=GETDATE(),UpdateUserId=18614
+		FROM DataSupplier.Document os 
+		INNER JOIN @UpdatedOSAE osae ON os.DocumentId=osae.DocumentId
+		WHERE os.DocumentTypeId=2 AND os.Active=1
+	COMMIT TRANSACTION
+	GO

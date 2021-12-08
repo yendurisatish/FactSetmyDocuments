@@ -1,0 +1,127 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Transform" : "AWS::Serverless-2016-10-31",
+  "Description" : "Starting template for an AWS Serverless Application.",
+  "Parameters" : {
+  },
+  "Resources" : {
+    "LoadSupplierContractData" : {
+      "Type" : "AWS::Serverless::Function",
+      "Properties": {
+        "Handler": "SupplierWDIntegration::SupplierWDIntegration.Function::LoadContractData",
+        "Runtime": "dotnetcore3.1",
+        "CodeUri": "",
+        "Description": "function for loading Contract data ",
+        "MemorySize": 256,
+        "Timeout": 30,
+        "Role": "arn:aws:iam::082730710623:role/service-execution-iam-role",
+        "Environment":{
+            "Variables":  {
+                   "ACCOUNT_ID": "082730710623",
+                   "USERNAME": "svc-aws-082730710623@factset.com",
+                  "PASSWORDPATH": "/supplierlist_process/Temp_Credentials_password",
+                   "DBUSERNAME": "supplier.io.dev",
+                   "SQLDATASOURCE": "issqldev.pc.factset.com",
+                   "ROLENAME": "remote-execution-iam-role",
+                   "DBNAME": "Supplier",
+                   "S3BUCKETNAME": "fdss3-supplier-portal",
+                   "GeneratedFileType": "Supplier Contract",
+                   "DBPASSWORDPATH": "/supplierlist_process/supplier_db_password"
+                        }
+                    },
+        "Policies": [ "AWSLambda_FullAccess" ]
+       
+      }
+    },
+     "GeneratePurchaseItemFile" : {
+      "Type" : "AWS::Serverless::Function",
+      "Properties": {
+        "Handler": "SupplierWDIntegration::SupplierWDIntegration.Function::GeneratePurchaseItemFile",
+        "Runtime": "dotnetcore3.1",
+        "CodeUri": "",
+        "Description": "function for GeneratePurchaseItemFile ",
+        "MemorySize": 256,
+        "Timeout": 30,
+        "Role": "arn:aws:iam::082730710623:role/service-execution-iam-role",
+        "Environment":{
+            "Variables":  {
+                   "ACCOUNT_ID": "082730710623",
+                   "USERNAME": "svc-aws-082730710623@factset.com",
+                   "PASSWORDPATH": "/supplierlist_process/Temp_Credentials_password",
+                   "DBUSERNAME": "supplier.io.dev",
+                   "SQLDATASOURCE": "issqldev.pc.factset.com",
+                   "ROLENAME": "remote-execution-iam-role",
+                   "DBNAME": "Supplier",
+                   "S3BUCKETNAME": "fdss3-supplier-portal",
+                   "PREFIXNAME": "/SupplierPortalEIBFiles/WorkdaySuppliers/",
+                   "GeneratedFileType": "Purchase Item",
+                   "DBPASSWORDPATH": "/supplierlist_process/supplier_db_password"
+                        }
+                    },
+        "Policies": [ "AWSLambda_FullAccess" ]
+       
+      }
+    },
+    "GenerateSupplierContractFile" : {
+      "Type" : "AWS::Serverless::Function",
+      "Properties": {
+        "Handler": "SupplierWDIntegration::SupplierWDIntegration.Function::GenerateSupplierContractFile",
+        "Runtime": "dotnetcore3.1",
+        "CodeUri": "",
+        "Description": "function for GenerateSupplierContractFile ",
+        "MemorySize": 256,
+        "Timeout": 30,
+        "Role": "arn:aws:iam::082730710623:role/service-execution-iam-role",
+        "Environment":{
+            "Variables":  {
+                   "ACCOUNT_ID": "082730710623",
+                   "USERNAME": "svc-aws-082730710623@factset.com",
+                   "PASSWORDPATH": "/supplierlist_process/Temp_Credentials_password",
+                   "DBUSERNAME": "supplier.io.dev",
+                   "SQLDATASOURCE": "issqldev.pc.factset.com",
+                   "ROLENAME": "remote-execution-iam-role",
+                   "DBNAME": "Supplier",
+                   "S3BUCKETNAME": "fdss3-supplier-portal",
+                   "PREFIXNAME": "/SupplierPortalEIBFiles/WorkdaySuppliers/",
+                   "GeneratedFileType": "Supplier Contract",
+                   "DBPASSWORDPATH": "/supplierlist_process/supplier_db_password"
+                        }
+                    },
+        "Policies": [ "AWSLambda_FullAccess" ]
+       
+      }
+    },
+      "GenerateSupplierContractAmendmentFile" : {
+      "Type" : "AWS::Serverless::Function",
+      "Properties": {
+        "Handler": "SupplierWDIntegration::SupplierWDIntegration.Function::GenerateSupplierContractAmendmentFile",
+        "Runtime": "dotnetcore3.1",
+        "CodeUri": "",
+        "Description": "function for GenerateSupplierContractAmendmentFile ",
+        "MemorySize": 256,
+        "Timeout": 30,
+        "Role": "arn:aws:iam::082730710623:role/service-execution-iam-role",
+        "Environment":{
+            "Variables":  {
+                   "ACCOUNT_ID": "082730710623",
+                   "USERNAME": "svc-aws-082730710623@factset.com",
+                   "PASSWORDPATH": "/supplierlist_process/Temp_Credentials_password",
+                   "DBUSERNAME": "supplier.io.dev",
+                   "SQLDATASOURCE": "issqldev.pc.factset.com",
+                   "ROLENAME": "remote-execution-iam-role",
+                   "DBNAME": "Supplier",
+                   "S3BUCKETNAME": "fdss3-supplier-portal",
+                   "PREFIXNAME": "/SupplierPortalEIBFiles/WorkdaySuppliers/",
+                   "GeneratedFileType": "Supplier Contract Amendment",
+                   "DBPASSWORDPATH": "/supplierlist_process/supplier_db_password"
+                        }
+                    },
+        "Policies": [ "AWSLambda_FullAccess" ]
+       
+      }
+    }
+  },
+  "Outputs" : {
+   
+  }
+}

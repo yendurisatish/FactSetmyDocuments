@@ -1,0 +1,93 @@
+
+USE [Supplier]
+GO
+
+/****** Object:  Trigger [DataSupplier].[AfterUpdateSubsidaryIdTrigger]    Script Date: 5/4/2021 7:29:50 PM ******/
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+CREATE trigger [DataSupplier].[AfterUpdateSubsidaryIdTrigger] on [DataSupplier].[AgreementExtension]
+after update
+as
+Begin
+DECLARE @ErrorMessage nvarchar(max)
+ Begin TRY
+Declare 
+@SubsidiaryId INT,
+@OldSubsidiary INT, 
+@CurrentDate datetime, 
+@LogMessage nvarchar(100), 
+@Message nvarchar(max),
+@DocumentId INT,
+@UpdatedUser int,
+@DocumentTypeId INT;
+DECLARE @UpdatedOSAE TABLE (DocumentId int);
+SET @CurrentDate=DATEADD(d,0,DATEDIFF(d,0,GETDATE()));
+Select @SubsidiaryId=ins.SubsidiaryId from INSERTED ins;
+Select @DocumentId=ins.DocumentId from INSERTED ins;
+Select @DocumentTypeId=DocumentTypeId from DataSupplier.Document where DocumentId=@DocumentId;
+Select @UpdatedUser=UpdateUserId from DataSupplier.Document where DocumentId=@DocumentId;
+select @OldSubsidiary=SubsidiaryId from deleted;
+ if UPDATE(SubsidiaryId) and @DocumentTypeId=1
+ begin
+ set nocount on;
+ Begin Transaction
+ Update [DataSupplier].[AgreementExtension] set SubsidiaryId=@SubsidiaryId OUTPUT INSERTED.DocumentId INTO @UpdatedOSAE
+ where DocumentId in (select DocumentId from DataSupplier.Document where ParentDocumentId=@DocumentId and DocumentTypeId=2 and active=1) and SubsidiaryId=@OldSubsidiary;
+ UPDATE  os SET os.UpdateDate=GETDATE(),os.UpdateUserId=@UpdatedUser
+		FROM DataSupplier.Document os 
+		INNER JOIN @UpdatedOSAE osae ON os.DocumentId=osae.DocumentId
+		WHERE os.DocumentTypeId=2 AND os.Active=1;
+ Commit transaction
+
+   SET @Message='SubsidiaryId of AgreementExtension with document ID' + CAST(@DocumentId AS varchar) +' changed from ' + CAST(@OldSubsidiary AS varchar) +' to ' + CAST(@SubsidiaryId AS varchar) 
+   SET @LogMessage = 'Updating SubsidiaryId of Document ' + CAST(@DocumentId AS varchar) + ', New SubsidiaryId:'+ CAST(@SubsidiaryId  AS varchar)
+ end
+ EXECUTE InformationSystems.Shared.LogEventByNTUsername 
+			'SPPLRS' --@label
+			, 'Event' --@eventEnum
+			, 2 --@level
+			, 'svc-is' --@ntusername
+			, null --@sessionid
+			, @Message --@message
+			, 'Trigger on DataSupplier.AgreementExtension' --tag_one
+			, @LogMessage --tag_two
+			, null --tag_three
+			, null --tag_four
+			, @CurrentDate --@eventDate
+			, 0 --@notify
+ 
+ END TRY
+ BEGIN CATCH
+		PRINT 'THERE WAS AN ERROR'
+		SET @ErrorMessage=ERROR_MESSAGE()
+		EXECUTE InformationSystems.Shared.LogErrorByNTUsername 
+				'SPPLRS' --@label
+				, 'Error' --@eventEnum
+				, 4 --@level
+				, 'svc-is' --@ntusername
+				, null --@sessionid
+				, @ErrorMessage --@message
+				, 'Error in Trigger on DataSupplier.AgreementExtension' --@tag_one
+				, @LogMessage --@tag_two
+				, null --@tag_three
+				, null --@tag_four
+				, @CurrentDate --@eventDate
+				, 'Supplier.DataSupplier.AfterUpdateSubsidaryIdTrigger' --@method
+				, null --@error_message
+				, null --@error_inner_message
+				, null -- @stackTrace
+				, null --@innerStackTrace
+				, 0 --@notify
+	END CATCH
+End
+GO
+
+ALTER TABLE [DataSupplier].[AgreementExtension] ENABLE TRIGGER [AfterUpdateSubsidaryIdTrigger]
+GO
+
+

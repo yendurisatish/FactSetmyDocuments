@@ -1,0 +1,38 @@
+points to be noted to migrate from sql to postgre
+
+-- DataType mapping
+
+-- Incompatibilities
+      SQL SERVER                     |        POSTGRE
+    - DATEPART                       |       date_part
+	- ISNULL                         |       COALESCE
+	- SPACE($n)                      |       REPEAT(‘ ’, $n)
+	- DATEADD(day, 2, GETDATE());    |       SELECT CURRENT_DATE + INTERVAL ‘2 day’
+	- ‘+’ for String Concatenation   |        ‘||’ for String Concatenation
+	- CHARINDEX                      |       POSITION
+	- GETDATE()                      |       NOW()
+	
+--  Migration tools 
+   
+   - Pgloader
+   - Sqlserver2pgsql
+	
+	
+	
+	
+	https://github.com/yogimehla/SQLtoPostgresMigrationScript
+	
+	
+	https://www.siriusopensource.com/en-us/blog/microsoft-sql-server-postgresql-migration-using-pgloader
+	
+	https://www.endpoint.com/blog/2019/01/23/migrate-from-sql-server-to-postgresql
+	
+	
+	https://www.youtube.com/watch?v=5eF9_UB73TI
+	https://www.youtube.com/watch?v=YKJub0zVztE
+	https://github.com/yogimehla/SQLtoPostgresMigrationScript
+	
+	https://github.com/dimitri/pgloader
+	
+	https://www.ispirer.com/products/sql-server-to-postgresql-migration
+	

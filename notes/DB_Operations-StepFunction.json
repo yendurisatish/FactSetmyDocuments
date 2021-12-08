@@ -1,0 +1,608 @@
+{
+  "Comment": "State Machine",
+  "StartAt": "get_db_operations_request_details",
+  "TimeoutSeconds": 25600,
+  "States":
+  {
+    "get_db_operations_request_details": {    
+      "Type": "Task",
+      "InputPath" : "$.input",
+      "Resource": "arn:aws:lambda:us-east-1:826422229211:function:ae_dbaas_dv2_get_db_operations_request_details",
+   
+      "Catch": [ {
+            "ErrorEquals": ["States.TaskFailed"],
+            "Next": "Failed"
+         }, {
+            "ErrorEquals": ["States.ALL"],
+            "Next": "Failed"
+         } ],
+   "Next": "wait_until_db_operations_request_details"},
+    "wait_until_db_operations_request_details": {
+      "Type": "Wait",
+      "Seconds": 100,
+      "Next": "check_request_from"
+    },
+    "check_request_from": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.request_from",
+          "NumericEquals": 1,
+          "Next": "check_type_of_db_operations"
+        },
+        {
+          "Variable": "$.request_from",
+          "NumericEquals": 2,
+          "Next": "check_db_operations_approval"
+        }
+      ]
+    },
+    "check_db_operations_approval": {    
+      "Type": "Task",     
+      "Resource": "arn:aws:lambda:us-east-1:826422229211:function:ae_dbaas_dv2_check_db_operations_approval",
+      "Catch": [ {
+            "ErrorEquals": ["States.TaskFailed"],
+            "Next": "Failed"
+         }, {
+            "ErrorEquals": ["States.ALL"],
+            "Next": "Failed"
+         } ],    
+       "Next": "check_approval_status"},  
+    "check_approval_status": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.request_status_type",
+          "StringEquals": "Approved",
+          "Next": "check_type_of_db_operations"
+        },
+        {
+          "Variable": "$.request_status_type",
+          "StringGreaterThan": "Approved",
+           "Next": "End"
+          }      
+      ]
+    },
+    "check_type_of_db_operations": {    
+      "Type": "Choice",
+      "Choices": 
+		  [
+			{
+			  "Variable": "$.request_type_id",
+			  "NumericEquals": 9,
+			  "Next": "backup"
+			},
+			{
+			  "Variable": "$.request_type_id",
+			  "NumericEquals": 10,
+			  "Next": "restore"
+			},
+			{
+			  "Variable": "$.request_type_id",
+			  "NumericEquals": 11,
+			  "Next": "user_management"
+			},
+			{
+			  "Variable": "$.request_type_id",
+			  "NumericEquals": 12,
+			  "Next": "adhoc"
+			}
+		  ]
+      },
+    "backup": {    
+      "Type": "Task",     
+      "Resource": "arn:aws:lambda:us-east-1:826422229211:function:ae_dbaas_dv2_db_operations_backup",
+      "Catch": [ {
+            "ErrorEquals": ["States.TaskFailed"],
+            "Next": "Failed"
+         }, {
+            "ErrorEquals": ["States.ALL"],
+            "Next": "Failed"
+         } ],
+   "Next": "wait_until_backup"},
+    "wait_until_backup": {
+      "Type": "Wait",
+      "Seconds": 1200,
+      "Next": "publish_details"
+    },
+    
+    "restore": {    
+      "Type": "Task",     
+      "Resource": "arn:aws:lambda:us-east-1:826422229211:function:ae_dbaas_dv2_db_operations_restore",
+      "Catch": [ {
+            "ErrorEquals": ["States.TaskFailed"],
+            "Next": "Failed"
+         }, {
+            "ErrorEquals": ["States.ALL"],
+            "Next": "Failed"
+         } ],
+   "Next": "check_request_type"},
+  
+      
+    "check_request_type": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.db_request_type",
+          "StringEquals": "RDS",
+          "Next": "check_environment_account_type"
+        },
+        {
+          "Variable": "$.db_request_type",
+          "StringEquals": "EC2",
+           "Next": "ec2_pre_restore_script"
+          }      
+      ]
+    },
+ 
+    "check_environment_account_type": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.request_Environment_type",
+          "StringEquals": "PPAS-PPASDev",
+          "Next": "share_snapshot"
+        },
+        {
+          "Variable": "$.request_Environment_type",
+          "StringEquals": "PPASDev-PPASDev",
+           "Next": "finalrestore"
+          }      
+      ]
+    },
+"share_snapshot": {    
+      "Type": "Task",     
+      "Resource": "arn:aws:lambda:us-east-1:826422229211:function:ae_dbaas_dv2_db_operations_share_instance_snapshot",
+      "Catch": [ {
+            "ErrorEquals": ["States.TaskFailed"],
+            "Next": "Failed"
+         }, {
+            "ErrorEquals": ["States.ALL"],
+            "Next": "Failed"
+         } ],    
+       "Next": "wait_until_share_snapshot"},
+"wait_until_share_snapshot": {
+      "Type": "Wait",
+      "Seconds": 300,
+      "Next": "copy_snapshot"},
+  
+"copy_snapshot": {    
+      "Type": "Task",     
+      "Resource": "arn:aws:lambda:us-east-1:826422229211:function:ae_dbaas_dv2_db_operations_copy_instance_snapshot",
+      "Catch": [ {
+            "ErrorEquals": ["States.TaskFailed"],
+            "Next": "Failed"
+         }, {
+            "ErrorEquals": ["States.ALL"],
+            "Next": "Failed"
+         } ],    
+       "Next": "wait_until_copy_snapshot"},
+   "wait_until_copy_snapshot": {
+      "Type": "Wait",
+      "Seconds": 300,
+      "Next": "finalrestore"},
+       "finalrestore": {    
+      "Type": "Task",     
+      "Resource": "arn:aws:lambda:us-east-1:826422229211:function:ae_dbaas_dv2_db_operations_restore",
+      "Catch": [ {
+            "ErrorEquals": ["States.TaskFailed"],
+            "Next": "Failed"
+         }, {
+            "ErrorEquals": ["States.ALL"],
+            "Next": "Failed"
+         } ],
+   "Next": "wait_until_restore"},
+    "wait_until_restore": {
+      "Type": "Wait",
+      "Seconds": 300,
+      "Next": "delete_rds_replica_instance"
+    },  
+    "delete_rds_replica_instance": {     
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:826422229211:function:ae_dbaas_dv2_db_operations_delete_read_replica_instance",
+      "Next":"wait_until_delete_existing_rds_replica_instance"
+    },
+    "wait_until_delete_existing_rds_replica_instance": {
+      "Type": "Wait",
+      "Seconds": 1000,
+      "Next": "delete_exiting_rds_instance"
+    },
+"delete_exiting_rds_instance": {    
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:826422229211:function:ae_dbaas_dv2_db_operations_delete_instance",
+      "Next":"wait_until_delete_exiting_rds_instance"
+    },
+    
+     "wait_until_delete_exiting_rds_instance": {
+      "Type": "Wait",
+      "Seconds": 1300,
+      "Next": "delete_existing_cluster_instance"
+    },
+     "delete_existing_cluster_instance": {    
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:826422229211:function:ae_dbaas_dv2_db_operations_delete_cluster_instance",
+      "Next":"wait_until_existing_delete_cluster_instance"
+    },
+    "wait_until_existing_delete_cluster_instance": {
+      "Type": "Wait",
+      "Seconds": 1000,
+      "Next": "create_rds_cluster_instance"
+    },
+     
+      "create_rds_cluster_instance": {    
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:826422229211:function:ae_dbaas_dv2_db_operations_create_cluster_instance",
+      "Catch": [ {
+            "ErrorEquals": ["States.TaskFailed"],
+         "ResultPath": "$.error-info",
+            "Next": "delete_parametergroup"
+         }, {
+            "ErrorEquals": ["States.ALL"],
+            "ResultPath": "$.error-info",
+            "Next": "ClusterCreationFailed"
+         } ],
+   "Next": "wait_until_cluster_instance_create"},
+  
+    "wait_until_cluster_instance_create": {
+      "Type": "Wait",
+      "Seconds":1000,
+      "Next": "create_rds_instance"
+    },
+    "create_rds_instance": {    
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:826422229211:function:ae_dbaas_dv2_db_operations_create_instance",
+      "Catch": [ {
+             "ErrorEquals": ["States.TaskFailed"],
+             "ResultPath": "$.error-info",
+            "Next": "delete_parametergroup"
+         }, {
+            "ErrorEquals": ["States.ALL"],
+            "ResultPath": "$.error-info",
+            "Next": "CatchAllFallback"
+         } ],
+   "Next": "wait_until_instance_create"},
+  
+    "wait_until_instance_create": {
+      "Type": "Wait",
+      "Seconds":1000,
+      "Next": "modify_instance"
+    },
+    "modify_instance": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:826422229211:function:ae_dbaas_dv2_db_operations_modify_instance",
+       "Catch": [ {
+            "ErrorEquals": ["States.TaskFailed"],
+          "ResultPath": "$.error-info",
+            "Next": "delete_workflow_rds_read_replica_instance"
+         }, {
+            "ErrorEquals": ["States.ALL"],
+            "ResultPath": "$.error-info",
+            "Next": "OtherError"
+         } ],
+      "Next": "wait_until_modify_instance"
+    },
+     "wait_until_modify_instance": {
+      "Type": "Wait",
+      "Seconds": 900,
+      "Next": "reboot_instance"
+    },
+    "reboot_instance": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:826422229211:function:ae_dbaas_dv2_db_operations_reboot_instance",
+       "Catch": [ {
+            "ErrorEquals": ["States.TaskFailed"],
+          "ResultPath": "$.error-info",
+            "Next": "delete_workflow_rds_read_replica_instance"
+         }, {
+            "ErrorEquals": ["States.ALL"],
+            "ResultPath": "$.error-info",
+            "Next": "OtherError"
+         } ],
+      "Next": "wait_until_reboot_instance"
+    },
+     "wait_until_reboot_instance": {
+      "Type": "Wait",
+      "Seconds": 1200,
+      "Next": "create_database"
+    },
+    
+    "create_database": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:826422229211:function:ae_dbaas_dv2_db_operations_create_database",
+       "Catch": [ {
+            "ErrorEquals": ["States.TaskFailed"],
+          "ResultPath": "$.error-info",
+            "Next": "delete_rds_instance"
+         }, {
+            "ErrorEquals": ["States.ALL"],
+            "ResultPath": "$.error-info",
+            "Next": "OtherError"
+         } ],
+      "Next": "wait_until_database_create"
+    },
+     "wait_until_database_create": {
+      "Type": "Wait",
+      "Seconds": 650,
+      "Next": "create_rds_read_replica_instance"
+    },
+    "create_rds_read_replica_instance": {    
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:826422229211:function:ae_dbaas_dv2_db_operations_create_replica_instance",
+      "Catch": [ {
+             "ErrorEquals": ["States.TaskFailed"],
+             "ResultPath": "$.error-info",
+            "Next": "delete_rds_instance"
+         }, {
+            "ErrorEquals": ["States.ALL"],
+            "ResultPath": "$.error-info",
+            "Next": "CatchAllFallback"
+         } ],
+   "Next": "wait_until_create_rds_read_replica_instance"},
+    "wait_until_create_rds_read_replica_instance": {
+      "Type": "Wait",
+      "Seconds":800,
+      "Next": "validate_instance"
+    },
+ 
+    "validate_instance": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:826422229211:function:ae_dbaas_dv2_db_operations_validate_instance",
+       "Catch": [ {
+            "ErrorEquals": ["States.TaskFailed"],
+          "ResultPath": "$.error-info",
+            "Next": "delete_workflow_rds_read_replica_instance"
+         }, {
+            "ErrorEquals": ["States.ALL"],
+            "ResultPath": "$.error-info",
+            "Next": "OtherError"
+         } ],
+      "Next": "post_restore_scripts"
+    },
+                "post_restore_scripts": {    
+      "Type": "Task",     
+      "Resource": "arn:aws:lambda:us-east-1:826422229211:function:ae_dbaas_dv2_db_operations_execute_script",
+     "Catch": [ {
+            "ErrorEquals": ["States.TaskFailed"],
+          "ResultPath": "$.error-info",
+           "Next": "Failed"
+         }, {
+            "ErrorEquals": ["States.ALL"],
+            "ResultPath": "$.error-info",
+            "Next": "Failed"
+         } ],
+       "Next": "rds-work_flow_publish_details"},
+     "delete_workflow_rds_read_replica_instance": {       
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:826422229211:function:ae_dbaas_dv2_db_operations_delete_workflow_read_replica",
+      "Next":"wait_until_delete_rds_replica_instance"
+    },
+    "wait_until_delete_rds_replica_instance": {
+      "Type": "Wait",
+      "Seconds": 1000,
+      "Next": "delete_rds_instance"
+    },
+    "delete_parametergroup": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:826422229211:function:ae_dbaas_dv2_db_operations_delete_parameter_group",
+       "Catch": [ {
+            "ErrorEquals": ["States.TaskFailed"],
+            "Next": "Failed"
+         }, {
+            "ErrorEquals": ["States.ALL"],
+            "Next": "Failed"
+         } ],
+      "Next": "wait_until_parametergroup_delete"
+    },
+     "wait_until_parametergroup_delete": {
+      "Type": "Wait",
+      "Seconds": 300,
+      "Next": "delete_networkgroup"
+    },
+     "delete_networkgroup": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:826422229211:function:ae_dbaas_dv2_db_operations_delete_subnet_group",
+       "Catch": [ {
+            "ErrorEquals": ["States.TaskFailed"],
+            "Next": "Failed"
+         }, {
+            "ErrorEquals": ["States.ALL"],
+            "Next": "Failed"
+         } ],
+      "Next": "wait_until_networkgroup_delete"
+    },
+     "wait_until_networkgroup_delete": {
+      "Type": "Wait",
+      "Seconds": 300,
+      "Next": "delete_optiongroup"
+    },
+     "delete_optiongroup": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:826422229211:function:ae_dbaas_dv2_db_operations_delete_option_group",
+       "Catch": [ {
+            "ErrorEquals": ["States.TaskFailed"],
+            "Next": "Failed"
+         }, {
+            "ErrorEquals": ["States.ALL"],
+            "Next": "Failed"
+         } ],
+      "Next": "wait_until_optiongroup_delete"
+    },
+     "wait_until_optiongroup_delete": {
+      "Type": "Wait",
+      "Seconds": 300,
+      "Next": "delete_securitygroup"
+    },
+     "delete_securitygroup": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:826422229211:function:ae_dbaas_dv2_db_operations_delete_security_group",
+       "Catch": [ {
+            "ErrorEquals": ["States.TaskFailed"],
+            "Next": "Failed"
+         }, {
+            "ErrorEquals": ["States.ALL"],
+            "Next": "Failed"
+         } ],
+      "Next": "wait_until_securitygroup_delete"
+    },
+     "wait_until_securitygroup_delete": {
+      "Type": "Wait",
+      "Seconds": 300,
+       "End": true
+    },   
+      "CatchAllFallback": {
+         "Type": "Pass",
+         "Result": "This is a fallback from any error code",
+         "End": true
+      },
+     "OtherError": {
+         "Type": "Pass",
+         "Result": "This is a fallback from any error code",
+         "Next": "delete_rds_instance"
+     },
+    "delete_rds_instance": {    
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:826422229211:function:ae_dbaas_dv2_db_operations_delete_instance",
+      "Next":"wait_until_delete_rds_instance"
+    },
+    "wait_until_delete_rds_instance": {
+      "Type": "Wait",
+      "Seconds": 1300,
+      "Next": "delete_cluster_instance"
+    },
+     "delete_cluster_instance": {    
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:826422229211:function:ae_dbaas_dv2_db_operations_delete_cluster_instance",
+      "Next":"wait_until_delete_cluster_instance"
+    },
+    "wait_until_delete_cluster_instance": {
+      "Type": "Wait",
+      "Seconds": 1000,
+      "Next": "delete_parametergroup"
+    },
+                "ClusterCreationFailed": {
+         "Type": "Pass",
+         "Result": "Cluster Creation Failed",
+         "Next": "delete_parametergroup"
+     },
+     "ec2_pre_restore_script": {    
+      "Type": "Task",     
+      "Resource": "arn:aws:lambda:us-east-1:826422229211:function:ae_dbaas_dv2_db_operations_ec2_pre_execute_script",
+      "Catch": [ {
+            "ErrorEquals": ["States.TaskFailed"],
+            "Next": "Failed"
+         }, {
+            "ErrorEquals": ["States.ALL"],
+            "Next": "Failed"
+         } ],
+       "Next": "wait_until_ec2_pre_restore_script"},
+   
+    "wait_until_ec2_pre_restore_script": {
+      "Type": "Wait",
+      "Seconds": 300,
+      "Next": "ec2restore"},
+
+     "ec2restore": {    
+      "Type": "Task",     
+      "Resource": "arn:aws:lambda:us-east-1:826422229211:function:ae_dbaas_dv2_db_operations_restore",
+      "Catch": [ {
+            "ErrorEquals": ["States.TaskFailed"],
+            "Next": "Failed"
+         }, {
+            "ErrorEquals": ["States.ALL"],
+            "Next": "Failed"
+         } ],
+       "Next": "wait_until_ec2_restore"},
+   
+    "wait_until_ec2_restore": {
+      "Type": "Wait",
+      "Seconds": 1200,
+      "Next": "ec2_post_restore_script"},
+      "ec2_post_restore_script": {    
+      "Type": "Task",     
+      "Resource": "arn:aws:lambda:us-east-1:826422229211:function:ae_dbaas_dv2_db_operations_ec2_post_execute_script",
+      "Catch": [ {
+            "ErrorEquals": ["States.TaskFailed"],
+            "Next": "Failed"
+         }, {
+            "ErrorEquals": ["States.ALL"],
+            "Next": "Failed"
+         } ],
+       "Next": "wait_until_ec2_post_restore_script"},
+   
+    "wait_until_ec2_post_restore_script": {
+      "Type": "Wait",
+      "Seconds": 300,
+      "Next": "publish_details"},
+
+     "user_management": {    
+      "Type": "Task",     
+      "Resource": "arn:aws:lambda:us-east-1:826422229211:function:ae_dbaas_dv2_db_operations_user_management",
+      "Catch": [ {
+            "ErrorEquals": ["States.TaskFailed"],
+            "Next": "Failed"
+         }, {
+            "ErrorEquals": ["States.ALL"],
+            "Next": "Failed"
+         } ],
+   "Next": "wait_until_user_management"},
+    "wait_until_user_management": {
+      "Type": "Wait",
+      "Seconds": 150,
+      "Next": "publish_details"
+    },
+    "adhoc": {    
+      "Type": "Task",     
+      "Resource": "arn:aws:lambda:us-east-1:826422229211:function:ae_dbaas_dv2_db_operations_adhoc",
+      "Catch": [ {
+            "ErrorEquals": ["States.TaskFailed"],
+            "Next": "Failed"
+         }, {
+            "ErrorEquals": ["States.ALL"],
+            "Next": "Failed"
+         } ],
+   "Next": "wait_until_adhoc"},
+    "wait_until_adhoc": {
+      "Type": "Wait",
+      "Seconds": 300,
+      "Next": "publish_details"
+    },
+    
+ 
+     "publish_details": {    
+      "Type": "Task",     
+      "Resource": "arn:aws:lambda:us-east-1:826422229211:function:ae_dbaas_dv2_db_operations_publish_details",
+      "Catch": [ {
+            "ErrorEquals": ["States.TaskFailed"],
+            "Next": "Failed"
+         }, {
+            "ErrorEquals": ["States.ALL"],
+            "Next": "Failed"
+         } ],
+       "Next": "End"},
+    "rds-work_flow_publish_details": {    
+      "Type": "Task",     
+      "Resource": "arn:aws:lambda:us-east-1:826422229211:function:ae_dbaas_dv2_db_operations_workflow_publish",
+      "Catch": [ {
+            "ErrorEquals": ["States.TaskFailed"],
+            "Next": "Failed"
+         }, {
+            "ErrorEquals": ["States.ALL"],
+            "Next": "Failed"
+         } ],
+       "Next": "End"},
+     "End": {
+         "Type": "Pass",
+         "Result": "Execution completed successfully",
+         "End": true
+      },
+                  "Failed": {
+         "Type": "Pass",
+         "Result": "Groups Creation or Delete Groups Failed",
+         "End": true
+      }
+    
+  
+  }
+}
+
+

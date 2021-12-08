@@ -1,0 +1,9 @@
+DBUSERNAME= "supplier.io.dev"
+SQLDATASOURCE= "issqldev.pc.factset.com"
+DBTABLENAME= "Budget.workdaysupplierstaging"
+PREFIXNAME= "SupplierPortal/WorkdaySuppliers/"
+BUCKETNAME= "fdss3-supplier-portal-stg"
+BUCKET_SIZE= 1
+LAMBDA_NAME= "GetSuppliersFromWDFunction_STG"
+DBNAME="Supplier"
+PASSWORDPATH="/supplierlist_process/supplier_db_password"

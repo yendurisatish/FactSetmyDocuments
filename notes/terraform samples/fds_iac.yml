@@ -1,0 +1,7 @@
+terraform-major-version: 0.14.4
+tf-vars:
+  dev: dev.tfvars
+  stg: stg.tfvars
+  prod: prod.tfvars
+pre-script:
+  all: lambda_src/setup.sh

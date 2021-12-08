@@ -1,0 +1,16 @@
+ACCOUNT_ID= "082730710623"
+USERNAME= "svc-aws-082730710623@factset.com"
+PASSWORDPATH= "/supplierlist_process/Temp_Credentials_password"
+DBUSERNAME = "supplier.io.dev"
+SQLDATASOURCE = "issqldev.pc.factset.com"
+ROLENAME= "remote-execution-iam-role"
+DBNAME= "Supplier"
+BUCKETNAME = "fdss3-supplier-portal-wdintegration"
+PREFIXNAME = "/SupplierPortalEIBFiles/WorkdaySuppliers"
+GENERATEDFILETYPE=""
+DBPASSWORDPATH="/supplierlist_process/supplier_db_password"
+BUCKET_SIZE = 1
+LAMBDA_NAME = ""
+STEP_FUNCTION_ROLE="service-execution-iam-role"
+STEP_FUNCTION_NAME="SupplierWDIntegration_DEV"
+
